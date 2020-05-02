@@ -29,7 +29,8 @@ public class MainActivity extends AppCompatActivity {
         //mainLayout.addView(imageView);
 
         //CustomDrawableView view = new CustomDrawableView(this);
-        HeartbeatView view = new HeartbeatView(this);
+        //HeartbeatView view = new HeartbeatView(this);
+        StargateView view = new StargateView(this);
         mainLayout.addView(view);
 
         View decorView = getWindow().getDecorView();
