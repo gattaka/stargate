@@ -14,21 +14,23 @@ public class StargateView extends View {
     private int strokeWidth = 3;
     private int spacing = 15;
 
-    private int segment1Height = 370;
+    private int segment1Height = 390;
     private int segment1Width = 180;
     private int segment3Width = 400;
     private int segment4Width = 200;
-    private int segment5Width = 200;
+    private int segment5Width = 180;
 
     private int screenW, screenH;
 
     private long randomRefreshTime = 0;
     private long randomRefreshDelay = 100;
 
+    private int angleShift = 0;
+
     private int textSize = 16;
     private int randomStringsOffset = 0;
     private int randomStringsPointer = 0;
-    private int randomStringsLines = 23;
+    private int randomStringsLines = 24;
     private String randomStrings[] = new String[randomStringsLines];
 
     private int randomBits[] = new int[4];
@@ -250,13 +252,55 @@ public class StargateView extends View {
             paint.setStyle(Paint.Style.FILL);
             paint.setTypeface(Typeface.MONOSPACE);
             paint.setStrokeWidth(2);
-            paint.setTextSize(60);
-            canvas.drawText("" + (i + 1), x - 20, fromY + 70, paint);
+            paint.setTextSize(40);
+            canvas.drawText("" + (i + 1), x - 10, fromY + 60, paint);
 
             paint = createBasePaint();
             paint.setColor(Color.argb(0xff, 0x00, 0xa0, 0xff));
             canvas.drawRect(x + 30, fromY, x + segment5Width, fromY + slotHeight, paint);
         }
+    }
+
+    private void drawGate(Canvas canvas) {
+        Paint paint = createBasePaint();
+
+        float w = (screenW - bevel * 4 - segment1Width - 10 - segment5Width);
+        float h = (segment1Height + bevel + segment1Width);
+
+        float x = bevel + segment1Width + bevel;
+        float y = bevel;
+
+        canvas.drawRect(x, y, x + w, y + h, paint);
+
+        paint = createBasePaint();
+        paint.setAntiAlias(true);
+        paint.setStrokeWidth(1);
+        paint.setColor(Color.argb(0xff, 0xff, 0xff, 0xff));
+
+        float r = Math.min(w, h) / 2;
+        float cx = bevel * 2 + segment1Width + w / 2;
+        float cy = bevel + h / 2;
+        float r1 = r - 80;
+        canvas.drawCircle(cx, cy, r1, paint);
+        float r2 = r - 50;
+        canvas.drawCircle(cx, cy, r2, paint);
+        float r3 = r - 40;
+        canvas.drawCircle(cx, cy, r3, paint);
+        float r4 = r - 20;
+        canvas.drawCircle(cx, cy, r4, paint);
+
+        angleShift = (angleShift + 1) % 360;
+
+        int segments = 39;
+        float increment = 360f / segments;
+        for (int i = 0; i < segments; i++) {
+            float rad = (float) ((increment * i + angleShift) * Math.PI / 180);
+            Path path = new Path();
+            path.moveTo(cx + (float) Math.cos(rad) * r1, cy + (float) Math.sin(rad) * r1);
+            path.lineTo(cx + (float) Math.cos(rad) * r2, cy + (float) Math.sin(rad) * r2);
+            canvas.drawPath(path, paint);
+        }
+
     }
 
     @Override
@@ -276,6 +320,8 @@ public class StargateView extends View {
         drawSegment3(canvas);
         drawSegment4(canvas);
         drawSegment5(canvas);
+
+        drawGate(canvas);
 
         //canvas.restore();
         invalidate();
