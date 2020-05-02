@@ -1,4 +1,4 @@
-package com.example.android.stargate;
+package cz.gattserver.stargate;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+
+import com.example.android.stargate.R;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -21,14 +23,23 @@ public class MainActivity extends AppCompatActivity {
         // https://stackoverflow.com/questions/37621934/inflateexception-binary-xml-file-line-8-error-inflating-class-imageview
 
         LinearLayout mainLayout = findViewById(R.id.mainLayout);
-        ImageView imageView = new ImageView(getApplicationContext());
-        imageView.setImageResource(R.drawable.ui);
-        mainLayout.addView(imageView);
-        /*
-        Drawable drawable  = getResources().getDrawable(R.drawable.ui);
-        imageView.setImageDrawable(drawable);
 
-        */
+        //ImageView imageView = new ImageView(getApplicationContext());
+        //imageView.setImageResource(R.drawable.ui);
+        //mainLayout.addView(imageView);
+
+        //CustomDrawableView view = new CustomDrawableView(this);
+        HeartbeatView view = new HeartbeatView(this);
+        mainLayout.addView(view);
+
+        View decorView = getWindow().getDecorView();
+        decorView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+
+            @Override
+            public void onSystemUiVisibilityChange(int visibility) {
+                hideSystemUI();
+            }
+        });
     }
 
     @Override
@@ -45,7 +56,8 @@ public class MainActivity extends AppCompatActivity {
         // Or for "sticky immersive," replace it with SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_IMMERSIVE
+                //View.SYSTEM_UI_FLAG_IMMERSIVE
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                         // Set the content to appear under the system bars so that the
                         // content doesn't resize when the system bars hide and show.
                         | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
