@@ -12,24 +12,37 @@ public class StargateView extends View {
 
     private int bevel = 20;
     private int strokeWidth = 3;
+    private int spacing = 20;
 
-    // Text random
-    private int rows = 11;
-    private int cols = 9;
+    private int segment1Height = 340;
+    private int segment1Width = 210;
 
     private int screenW, screenH;
-    private int angle;
 
     private long randomRefreshTime = 0;
     private long randomRefreshDelay = 100;
-    private String randomString;
-    private int randomBits[] = new int[4];
 
-    private long lastFrame = 0;
+    private int textSize = 16;
+    private int randomStringsOffset = 0;
+    private int randomStringsPointer = 0;
+    private int randomStringsLines = 21;
+    private String randomStrings[] = new String[randomStringsLines];
+
+    private int randomBits[] = new int[4];
 
     public StargateView(Context context) {
         super(context);
-        angle = 0;
+
+        for (int l = 0; l < randomStringsLines; l++)
+            randomStrings[l] = randomString();
+    }
+
+    private String randomString() {
+        String s = "";
+        int len = (int) (Math.random() * 20);
+        for (int c = 0; c < len; c++)
+            s += (char) (Math.random() * 255);
+        return s;
     }
 
     @Override
@@ -51,11 +64,6 @@ public class StargateView extends View {
     }
 
     private void generateRandom() {
-        String s = "";
-        for (int c = 0; c < rows * cols; c++)
-            s += (char) (65 + Math.random() * 25);
-        randomString = s;
-
         for (int i = 0; i < 4; i++)
             randomBits[i] = (int) (Math.random() * (1 << 3 * 3));
     }
@@ -64,6 +72,9 @@ public class StargateView extends View {
         Paint paint = new Paint();
         paint.setColor(Color.argb(0xff, 0x00, 0x00, 0x00));
         canvas.drawRect(0, 0, screenW, screenH, paint);
+
+        paint = createBasePaint();
+        canvas.drawRect(0, 0, 1024, 768, paint);
     }
 
     private void drawSegment1(Canvas canvas) {
@@ -71,47 +82,44 @@ public class StargateView extends View {
         float y = bevel;
 
         Paint paint = createBasePaint();
-        paint.setStrokeWidth(strokeWidth);
-        canvas.drawRect(x, y, x + 190, y + 280, paint);
 
-        int wSpacing = 10;
-        int hSpacing = 15;
-        int size = 10;
-
-        x += 10;
-        y += 22;
+        randomStringsOffset += 3;
+        if (randomStringsOffset >= textSize) {
+            randomStringsOffset = randomStringsOffset % textSize;
+            randomStrings[randomStringsPointer] = randomString();
+            randomStringsPointer = (randomStringsPointer + 1) % randomStringsLines;
+        }
 
         paint.setStyle(Paint.Style.FILL);
         paint.setTypeface(Typeface.MONOSPACE);
         paint.setStrokeWidth(2);
-        paint.setTextSize(20);
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                canvas.drawText("" + randomString.charAt(i * cols + j), x, y, paint);
-                x += size + wSpacing;
-            }
-            x = bevel + 10;
-            y += size + hSpacing;
-        }
+        paint.setTextSize(textSize);
+        for (int i = 0; i < randomStringsLines; i++)
+            canvas.drawText(randomStrings[(randomStringsPointer + i) % randomStringsLines], x + 10, y + 25 - randomStringsOffset + textSize * i, paint);
+
+        paint = new Paint();
+        paint.setColor(Color.argb(0xff, 0x00, 0x00, 0x00));
+        canvas.drawRect(x, y - textSize, x + segment1Width, y, paint);
+        canvas.drawRect(x, y + segment1Height, x + segment1Width, y + segment1Height + textSize, paint);
+
+        paint = createBasePaint();
+        canvas.drawRect(x, y, x + segment1Width, y + segment1Height, paint);
     }
 
     private void drawSegment2(Canvas canvas) {
         Paint paint = createBasePaint();
 
-        int baseSize = 190;
-        int spacing = 20;
-
         Path path = new Path();
         float x = bevel;
-        float y = bevel + 280 + bevel;
+        float y = bevel + segment1Height + bevel;
         path.moveTo(x, y);
-        path.lineTo(x, y + baseSize);
-        path.moveTo(x + baseSize, y);
-        path.lineTo(x + baseSize, y + baseSize);
+        path.lineTo(x, y + segment1Width);
+        path.moveTo(x + segment1Width, y);
+        path.lineTo(x + segment1Width, y + segment1Width);
         canvas.drawPath(path, paint);
 
-        float cellWidth = (baseSize - spacing * 3) / 2;
-        float cellHeight = (baseSize - spacing) / 2;
+        float cellWidth = (segment1Width - spacing * 3) / 2;
+        float cellHeight = (segment1Width - spacing) / 2;
         float cellHeight4 = cellHeight / 4;
         float cellWidth3 = cellWidth / 3;
         float radius = cellWidth3 / 4;
@@ -157,6 +165,21 @@ public class StargateView extends View {
         paint.setColor(Color.argb(0xff, 0xff, 0xff, 0xff));
     }
 
+    private void drawSegment3(Canvas canvas) {
+        Paint paint = createBasePaint();
+
+        float x = bevel;
+        float y = bevel + segment1Height + bevel + segment1Width + bevel;
+
+        int baseSize = 190;
+        int spacing = 20;
+
+        paint = createBasePaint();
+        canvas.drawRect(x, y, x + 400, 768 - bevel, paint);
+
+
+    }
+
     @Override
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -171,33 +194,7 @@ public class StargateView extends View {
         drawBackground(canvas);
         drawSegment1(canvas);
         drawSegment2(canvas);
-
-        Paint paint = new Paint();
-        paint.setColor(Color.argb(0xff, 0x99, 0x00, 0x00));
-        paint.setStrokeWidth(2);
-        paint.setAntiAlias(false);
-        paint.setStrokeCap(Paint.Cap.SQUARE);
-        paint.setStrokeJoin(Paint.Join.MITER);
-        paint.setStyle(Paint.Style.STROKE);
-
-        Path path = new Path();
-
-        float x = screenW / 2;
-        float y = screenH / 2;
-        float r = 50;
-
-        double rad = angle / 180f * Math.PI;
-        float x1 = (float) (x + Math.cos(rad) * r);
-        float y1 = (float) (y + Math.sin(rad) * r);
-
-        angle = (angle + 1) % 360;
-        rad = angle / 180f * Math.PI;
-        float x2 = (float) (x + Math.cos(rad) * r);
-        float y2 = (float) (y + Math.sin(rad) * r);
-
-        path.moveTo(x1, y1);
-        path.lineTo(x2, y2);
-        canvas.drawPath(path, paint);
+        drawSegment3(canvas);
 
         //canvas.restore();
         invalidate();
