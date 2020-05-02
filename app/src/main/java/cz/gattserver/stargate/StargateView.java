@@ -30,6 +30,10 @@ public class StargateView extends View {
 
     private int randomBits[] = new int[4];
 
+    int bars = 8;
+    int cels = 5;
+    private int randomCels[] = new int[bars];
+
     public StargateView(Context context) {
         super(context);
 
@@ -66,6 +70,9 @@ public class StargateView extends View {
     private void generateRandom() {
         for (int i = 0; i < 4; i++)
             randomBits[i] = (int) (Math.random() * (1 << 3 * 3));
+
+        for (int i = 0; i < bars; i++)
+            randomCels[i] = (int) (Math.random() * cels);
     }
 
     private void drawBackground(Canvas canvas) {
@@ -170,14 +177,30 @@ public class StargateView extends View {
 
         float x = bevel;
         float y = bevel + segment1Height + bevel + segment1Width + bevel;
-
-        int baseSize = 190;
-        int spacing = 20;
+        float toY = 768 - bevel;
+        int segment3Width = 400;
 
         paint = createBasePaint();
-        canvas.drawRect(x, y, x + 400, 768 - bevel, paint);
+        canvas.drawRect(x, y, x + segment3Width, toY, paint);
 
+        paint.setStyle(Paint.Style.FILL);
 
+        int barSpacing = 5;
+        float barWidth = (segment3Width - spacing * 2) * 1f / bars - barSpacing;
+        int cellSpacing = 5;
+        float cellHeight = (toY - y - spacing * 2) * 1f / cels - cellSpacing;
+        for (int i = 0; i < bars; i++) {
+            float fromX = x + spacing + (barWidth + barSpacing) * i;
+            for (int c = 0; c < randomCels[i]; c++) {
+                float fromY = toY - spacing - (cellHeight + cellSpacing) * c;
+                if (c == randomCels[i] - 1) {
+                    paint.setColor(Color.argb(0xff, 0x00, 0xf0, 0xff));
+                } else {
+                    paint.setColor(Color.argb(0xff, 0x00, 0xa0, 0xff));
+                }
+                canvas.drawRect(fromX, fromY - cellHeight, fromX + barWidth, fromY, paint);
+            }
+        }
     }
 
     @Override
