@@ -12,10 +12,13 @@ public class StargateView extends View {
 
     private int bevel = 20;
     private int strokeWidth = 3;
-    private int spacing = 20;
+    private int spacing = 15;
 
-    private int segment1Height = 340;
-    private int segment1Width = 210;
+    private int segment1Height = 370;
+    private int segment1Width = 180;
+    private int segment3Width = 400;
+    private int segment4Width = 200;
+    private int segment5Width = 200;
 
     private int screenW, screenH;
 
@@ -25,12 +28,14 @@ public class StargateView extends View {
     private int textSize = 16;
     private int randomStringsOffset = 0;
     private int randomStringsPointer = 0;
-    private int randomStringsLines = 21;
+    private int randomStringsLines = 23;
     private String randomStrings[] = new String[randomStringsLines];
 
     private int randomBits[] = new int[4];
 
-    int bars = 8;
+    private int randomBlocks;
+
+    int bars = 10;
     int cels = 5;
     private int randomCels[] = new int[bars];
 
@@ -43,7 +48,7 @@ public class StargateView extends View {
 
     private String randomString() {
         String s = "";
-        int len = (int) (Math.random() * 20);
+        int len = (int) (Math.random() * 17);
         for (int c = 0; c < len; c++)
             s += (char) (Math.random() * 255);
         return s;
@@ -73,6 +78,8 @@ public class StargateView extends View {
 
         for (int i = 0; i < bars; i++)
             randomCels[i] = (int) (Math.random() * cels);
+
+        randomBlocks = (int) (Math.random() * (1 << 15));
     }
 
     private void drawBackground(Canvas canvas) {
@@ -177,16 +184,14 @@ public class StargateView extends View {
 
         float x = bevel;
         float y = bevel + segment1Height + bevel + segment1Width + bevel;
-        float toY = 768 - bevel;
-        int segment3Width = 400;
+        float toY = screenH - bevel;
 
-        paint = createBasePaint();
         canvas.drawRect(x, y, x + segment3Width, toY, paint);
 
         paint.setStyle(Paint.Style.FILL);
 
         int barSpacing = 5;
-        float barWidth = (segment3Width - spacing * 2) * 1f / bars - barSpacing;
+        float barWidth = (segment3Width + barSpacing - spacing * 2) * 1f / bars - barSpacing;
         int cellSpacing = 5;
         float cellHeight = (toY - y - spacing * 2) * 1f / cels - cellSpacing;
         for (int i = 0; i < bars; i++) {
@@ -200,6 +205,57 @@ public class StargateView extends View {
                 }
                 canvas.drawRect(fromX, fromY - cellHeight, fromX + barWidth, fromY, paint);
             }
+        }
+    }
+
+    private void drawSegment4(Canvas canvas) {
+        Paint paint = createBasePaint();
+
+        float x = bevel + segment3Width + bevel;
+        float y = bevel + segment1Height + bevel + segment1Width + bevel;
+        float toY = screenH - bevel;
+
+        canvas.drawRect(x, y, x + segment4Width, toY, paint);
+
+        float barWidth = segment4Width * 1f / 5;
+        float barHeight = (toY - y) * 1f / 3;
+        for (int i = 0; i < 5; i++) {
+            float fromX = x + barWidth * i;
+            for (int j = 0; j < 3; j++) {
+                float fromY = toY - barHeight * j;
+
+                paint.setColor(Color.argb(0xff, 0x00, 0xa0, 0xff));
+                paint.setStyle(Paint.Style.STROKE);
+                canvas.drawRect(fromX, fromY - barHeight, fromX + barWidth, fromY, paint);
+
+                if ((randomBlocks & 1 << (i * 3 + j)) > 0) {
+                    paint.setColor(Color.argb(0xff, 0xff, 0xff, 0xff));
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawRect(fromX + 2, fromY - barHeight + 2, fromX + barWidth - 2, fromY - 2, paint);
+                }
+            }
+        }
+    }
+
+    private void drawSegment5(Canvas canvas) {
+        Paint paint = createBasePaint();
+
+        float x = screenW - bevel - segment5Width;
+        float y = bevel;
+
+        float slotHeight = (screenH + spacing - 2 * bevel) * 1f / 7 - spacing;
+        for (int i = 0; i < 7; i++) {
+            float fromY = y + i * (slotHeight + spacing);
+            paint.setColor(Color.argb(0xff, 0xff, 0xff, 0xff));
+            paint.setStyle(Paint.Style.FILL);
+            paint.setTypeface(Typeface.MONOSPACE);
+            paint.setStrokeWidth(2);
+            paint.setTextSize(60);
+            canvas.drawText("" + (i + 1), x - 20, fromY + 70, paint);
+
+            paint = createBasePaint();
+            paint.setColor(Color.argb(0xff, 0x00, 0xa0, 0xff));
+            canvas.drawRect(x + 30, fromY, x + segment5Width, fromY + slotHeight, paint);
         }
     }
 
@@ -218,6 +274,8 @@ public class StargateView extends View {
         drawSegment1(canvas);
         drawSegment2(canvas);
         drawSegment3(canvas);
+        drawSegment4(canvas);
+        drawSegment5(canvas);
 
         //canvas.restore();
         invalidate();
