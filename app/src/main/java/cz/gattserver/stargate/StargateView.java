@@ -229,7 +229,7 @@ public class StargateView extends View {
                 float fromY = toY - barHeight * j;
                 canvas.drawRect(fromX, fromY - barHeight, fromX + barWidth, fromY, strokeBluePaint);
                 if ((randomBlocks & 1 << (i * 3 + j)) > 0)
-                    canvas.drawRect(fromX + 2, fromY - barHeight + 2, fromX + barWidth - 2, fromY - 2, fillWhitePaint);
+                    canvas.drawRect(fromX + 2, fromY - barHeight + 2, fromX + barWidth - 1, fromY - 1, fillWhitePaint);
             }
         }
     }
@@ -255,6 +255,37 @@ public class StargateView extends View {
 
         canvas.drawRect(x, y, x + w, y + h, strokeBluePaint);
 
+        Path path = new Path();
+        path.moveTo(x, y + 20);
+        path.lineTo(x + 200, y + 20);
+        path.moveTo(x + w, y + 20);
+        path.lineTo(x + w - 200, y + 20);
+
+        path.moveTo(x, y + 60);
+        path.lineTo(x + 85, y + 60);
+        path.lineTo(x + 105, y + 80);
+        path.moveTo(x + w, y + 60);
+        path.lineTo(x + w - 85, y + 60);
+        path.lineTo(x + w - 105, y + 80);
+
+        path.moveTo(x, y + 245);
+        path.lineTo(x + 10, y + 245);
+        path.moveTo(x + w, y + 245);
+        path.lineTo(x + w - 10, y + 245);
+
+        path.moveTo(x, y + h - 130);
+        path.lineTo(x + 20, y + h - 130);
+        path.lineTo(x + 40, y + h - 150);
+        path.moveTo(x + w, y + h - 130);
+        path.lineTo(x + w - 20, y + h - 130);
+        path.lineTo(x + w - 40, y + h - 150);
+
+        path.moveTo(x, y + h - 30);
+        path.lineTo(x + 190, y + h - 30);
+        path.moveTo(x + w, y + h - 30);
+        path.lineTo(x + w - 190, y + h - 30);
+        canvas.drawPath(path, strokeBluePaint);
+
         float r = Math.min(w, h) / 2;
         float cx = bevel * 2 + segment1Width + w / 2;
         float cy = bevel + h / 2;
@@ -269,18 +300,22 @@ public class StargateView extends View {
 
         angleShift = (angleShift + 1) % 360;
 
-        Path path = new Path();
+        path = new Path();
 
         int segments = 39;
         float increment = 360f / segments;
         for (int i = 0; i < segments; i++) {
             float rad = (float) ((increment * i + angleShift) * Math.PI / 180);
-            path.moveTo(cx + (float) Math.cos(rad) * r1, cy + (float) Math.sin(rad) * r1);
-            path.lineTo(cx + (float) Math.cos(rad) * r2, cy + (float) Math.sin(rad) * r2);
+            path.moveTo(cx + (float) Math.cos(rad) * r3, cy + (float) Math.sin(rad) * r3);
+            path.lineTo(cx + (float) Math.cos(rad) * r4, cy + (float) Math.sin(rad) * r4);
         }
 
-        float offset[] = new float[]{0.03f, 0.07f, 0.2f, 0.25f, 0.26f, 0.1f, 0.05f};
-        float radius[] = new float[]{r1 - 25, r1 + 12, r1 + 10, r1 + 5, r1, r1 - 10, r1 - 40};
+        canvas.drawPath(path, strokeWhiteAliasedThinPaint);
+
+        path = new Path();
+
+        float offset[] = new float[]{0.03f, 0.07f, 0.15f, 0.2f, 0.25f, 0.26f, 0.11f, 0.05f};
+        float radius[] = new float[]{r1 - 24, r1 + 11, r1 + 11, r1 + 9, r1 + 5, r1, r1 - 2, r1 - 40};
         for (int i = 0; i < 9; i++) {
             float start = (float) (Math.PI * 1.5 + Math.PI * 2 / 9 * i);
             int coef = 1;
@@ -301,8 +336,8 @@ public class StargateView extends View {
             }
         }
 
+        canvas.drawPath(path, fillBlackPaint);
         canvas.drawPath(path, strokeWhiteAliasedThinPaint);
-
     }
 
     @Override
