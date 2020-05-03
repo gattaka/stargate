@@ -13,6 +13,7 @@ public class StargateView extends View {
 
     private boolean symbolMenuVisible = false;
     private int choosenSlotId = -1;
+    private String chars = "abcdefghijklmnABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     private int bevel = 20;
     private int strokeWidth = 3;
@@ -24,7 +25,11 @@ public class StargateView extends View {
     private int segment4Width = 200;
     private int segment5Width = 180;
 
-    private Slot slots[] = new Slot[7];
+    private char choosenGlyph[] = new char[7];
+
+    private UIButton slotButtons[] = new UIButton[7];
+    private UIButton glyphButtons[] = new UIButton[40];
+    private UIButton menuButton = new UIButton();
 
     private int screenW, screenH;
 
@@ -37,6 +42,7 @@ public class StargateView extends View {
     private int textSize = 16;
     private int randomStringsOffset = 0;
     private int randomStringsPointer = 0;
+    private int randomStringsChars = 14;
     private int randomStringsLines = 25;
     private String randomStrings[] = new String[randomStringsLines];
 
@@ -73,15 +79,18 @@ public class StargateView extends View {
 
         fillLightBluePaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0x00, 0xf0, 0xff));
 
+        Typeface rexliaFont = Typeface.createFromAsset(getContext().getAssets(), "rexlia.ttf");
         fillBlueTextPaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0x00, 0xa0, 0xff));
         fillBlueTextPaint.setStyle(Paint.Style.FILL);
-        fillBlueTextPaint.setTypeface(Typeface.MONOSPACE);
+        //fillBlueTextPaint.setTypeface(Typeface.MONOSPACE);
+        fillBlueTextPaint.setTypeface(rexliaFont);
         fillBlueTextPaint.setStrokeWidth(2);
         fillBlueTextPaint.setTextSize(textSize);
 
         fillWhiteTextPaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0xff, 0xff, 0xff));
         fillWhiteTextPaint.setStyle(Paint.Style.FILL);
-        fillWhiteTextPaint.setTypeface(Typeface.MONOSPACE);
+        //fillWhiteTextPaint.setTypeface(Typeface.MONOSPACE);
+        fillWhiteTextPaint.setTypeface(rexliaFont);
         fillWhiteTextPaint.setStrokeWidth(2);
         fillWhiteTextPaint.setTextSize(40);
 
@@ -98,19 +107,24 @@ public class StargateView extends View {
         strokeRedAliasedPaint.setStrokeWidth(3);
 
         // https://webfonts0.com/font-stargatesg-1addressglyphs-free/126f117375.htm
-        Typeface tf = Typeface.createFromAsset(getContext().getAssets(), "stargatesg1addressglyphs.ttf");
+        Typeface glyphFont = Typeface.createFromAsset(getContext().getAssets(), "stargatesg1addressglyphs.ttf");
         fillWhiteGlyphPaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0xff, 0xff, 0xff));
         fillWhiteGlyphPaint.setStyle(Paint.Style.FILL);
-        fillWhiteGlyphPaint.setTypeface(tf);
+        fillWhiteGlyphPaint.setTypeface(glyphFont);
         fillWhiteGlyphPaint.setStrokeWidth(2);
         fillWhiteGlyphPaint.setTextSize(80);
 
-        tf = Typeface.createFromAsset(getContext().getAssets(), "rexlia.ttf");
         fillWhiteRexliaPaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0xff, 0xff, 0xff));
         fillWhiteRexliaPaint.setStyle(Paint.Style.FILL);
-        fillWhiteRexliaPaint.setTypeface(tf);
+        fillWhiteRexliaPaint.setTypeface(rexliaFont);
         fillWhiteRexliaPaint.setStrokeWidth(2);
         fillWhiteRexliaPaint.setTextSize(50);
+
+        for (int i = 0; i < 7; i++)
+            slotButtons[i] = new UIButton().setId(i);
+        for (int i = 0; i < 40; i++)
+            glyphButtons[i] = new UIButton().setId(i);
+        menuButton = new UIButton();
     }
 
     private Paint preparePaint(Paint.Style style, int color) {
@@ -126,7 +140,7 @@ public class StargateView extends View {
 
     private String randomString() {
         String s = "";
-        int len = (int) (Math.random() * 17);
+        int len = (int) (Math.random() * randomStringsChars);
         for (int c = 0; c < len; c++)
             s += (char) (Math.random() * 255);
         return s;
@@ -270,7 +284,10 @@ public class StargateView extends View {
             float sy = y + i * (slotHeight + spacing);
             canvas.drawText("" + (i + 1), x - 10, sy + slotWidth, fillWhiteTextPaint);
             canvas.drawRect(sx, sy, x + segment5Width, sy + slotHeight, strokeBluePaint);
-            slots[i] = new Slot(i, sx, sy, slotWidth, slotHeight);
+            slotButtons[i].setX(sx).setY(sy).setW(slotWidth).setH(slotHeight);
+
+            if (choosenGlyph[i] != 0)
+                canvas.drawText("" + choosenGlyph[i], sx + 20, sy + 70, fillWhiteGlyphPaint);
         }
     }
 
@@ -295,7 +312,7 @@ public class StargateView extends View {
     }
 
     private void drawGate(Canvas canvas) {
-        float w = (screenW - bevel * 4 - segment1Width - 10 - segment5Width);
+        float w = (screenW - bevel * 4 - segment1Width - segment5Width);
         float h = (segment1Height + bevel + segment1Width);
 
         float x = bevel + segment1Width + bevel;
@@ -311,15 +328,15 @@ public class StargateView extends View {
 
         path.moveTo(x, y + 60);
         path.lineTo(x + 85, y + 60);
-        path.lineTo(x + 105, y + 80);
+        path.lineTo(x + 100, y + 75);
         path.moveTo(x + w, y + 60);
         path.lineTo(x + w - 85, y + 60);
-        path.lineTo(x + w - 105, y + 80);
+        path.lineTo(x + w - 100, y + 75);
 
         path.moveTo(x, y + 245);
-        path.lineTo(x + 10, y + 245);
+        path.lineTo(x + 5, y + 245);
         path.moveTo(x + w, y + 245);
-        path.lineTo(x + w - 10, y + 245);
+        path.lineTo(x + w - 5, y + 245);
 
         path.moveTo(x, y + h - 130);
         path.lineTo(x + 20, y + h - 130);
@@ -328,10 +345,10 @@ public class StargateView extends View {
         path.lineTo(x + w - 20, y + h - 130);
         path.lineTo(x + w - 40, y + h - 150);
 
-        path.moveTo(x, y + h - 30);
-        path.lineTo(x + 190, y + h - 30);
-        path.moveTo(x + w, y + h - 30);
-        path.lineTo(x + w - 190, y + h - 30);
+        path.moveTo(x, y + h - 20);
+        path.lineTo(x + 180, y + h - 20);
+        path.moveTo(x + w, y + h - 20);
+        path.lineTo(x + w - 180, y + h - 20);
         canvas.drawPath(path, strokeBluePaint);
 
         float r = Math.min(w, h) / 2 - 2;
@@ -371,41 +388,43 @@ public class StargateView extends View {
         canvas.drawPath(path, fillBlackPaint);
         canvas.drawPath(path, strokeWhiteAliasedThinPaint);
 
-        boolean selected = true;
-
-        path = new Path();
+        Path freeNotchPath = new Path();
+        Path selectedNotchPath = new Path();
         offset = new float[]{0.03f, 0.07f, 0.03f};
         radius = new float[]{r1 - 24, r1 + 10, r1 + 11};
         for (int i = 0; i < 9; i++) {
             float start = (float) (Math.PI * 1.5 + Math.PI * 2 / 9 * i);
-            prepareNotchDraw(start, cx, cy, path, offset, radius, offset.length);
+            Path p = freeNotchPath;
+            // chevron 4 a 5 se nepoužívá
+            if (i < 4 && choosenGlyph[i] != 0 || i > 5 && choosenGlyph[i - 2] != 0)
+                p = selectedNotchPath;
+            prepareNotchDraw(start, cx, cy, p, offset, radius, offset.length);
         }
-        canvas.drawPath(path, fillBlackPaint);
-        if (selected) {
-            canvas.drawPath(path, strokeRedAliasedPaint);
-        } else {
-            canvas.drawPath(path, strokeWhiteAliasedThinPaint);
-        }
+        canvas.drawPath(freeNotchPath, fillBlackPaint);
+        canvas.drawPath(selectedNotchPath, fillBlackPaint);
+        canvas.drawPath(freeNotchPath, strokeWhiteAliasedThinPaint);
+        canvas.drawPath(selectedNotchPath, strokeRedAliasedPaint);
 
-        path = new Path();
+        freeNotchPath = new Path();
+        selectedNotchPath = new Path();
         offset = new float[]{0.005f, 0.04f, 0.005f};
         radius = new float[]{r1 - 16, r1 + 9, r1 + 10};
         for (int i = 0; i < 9; i++) {
             float start = (float) (Math.PI * 1.5 + Math.PI * 2 / 9 * i);
-            prepareNotchDraw(start, cx, cy, path, offset, radius, offset.length);
+            Path p = freeNotchPath;
+            // chevron 4 a 5 se nepoužívá
+            if (i < 4 && choosenGlyph[i] != 0 || i > 5 && choosenGlyph[i - 2] != 0)
+                p = selectedNotchPath;
+            prepareNotchDraw(start, cx, cy, p, offset, radius, offset.length);
         }
-        canvas.drawPath(path, fillBlackPaint);
-        if (selected) {
-            canvas.drawPath(path, strokeRedAliasedPaint);
-        } else {
-            canvas.drawPath(path, strokeWhiteAliasedThinPaint);
-        }
+        canvas.drawPath(freeNotchPath, fillBlackPaint);
+        canvas.drawPath(selectedNotchPath, fillBlackPaint);
+        canvas.drawPath(freeNotchPath, strokeWhiteAliasedThinPaint);
+        canvas.drawPath(selectedNotchPath, strokeRedAliasedPaint);
     }
 
     private void drawSymbolMenu(Canvas canvas) {
         canvas.drawRect(bevel, bevel, screenW - bevel, screenH - bevel, strokeBluePaint);
-
-        String chars = "abcdefghijklmnABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
         int cols = 7;
         int rows = 6;
@@ -421,10 +440,12 @@ public class StargateView extends View {
                 if (index < chars.length()) {
                     canvas.drawText("" + chars.charAt(index), gx + 10, gy + 80, fillWhiteGlyphPaint);
                     canvas.drawRect(gx, gy, gx + w, gy + h, strokeBluePaint);
+                    glyphButtons[index].setX(gx).setY(gy).setW(w).setH(h).setId(index);
                 }
                 if (index == chars.length()) {
                     canvas.drawText("Menu", gx + 40, gy + 70, fillWhiteRexliaPaint);
                     canvas.drawRect(gx, gy, gx + w * 2, gy + h, strokeBluePaint);
+                    menuButton.setX(gx).setY(gy).setW(w).setH(h);
                 }
             }
         }
@@ -463,13 +484,27 @@ public class StargateView extends View {
         float x = event.getX();
         float y = event.getY();
 
-        for (int i = 0; i < slots.length; i++) {
-            Slot slot = slots[i];
-            if (x > slot.getX() && y > slot.getY() && x < slot.getX() + slot.getW() && y < slot.getY() + slot.getH()) {
-                choosenSlotId = slot.getId();
-                symbolMenuVisible = true;
-                break;
+        if (!symbolMenuVisible) {
+            for (int i = 0; i < slotButtons.length; i++) {
+                UIButton slotButton = slotButtons[i];
+                if (slotButton.isHit(x, y)) {
+                    choosenSlotId = slotButton.getId();
+                    symbolMenuVisible = true;
+                    break;
+                }
             }
+        } else {
+            for (int i = 0; i < glyphButtons.length; i++) {
+                UIButton glyphButton = glyphButtons[i];
+                if (glyphButton.isHit(x, y)) {
+                    choosenGlyph[choosenSlotId] = chars.charAt(i);
+                    choosenSlotId = -1;
+                    symbolMenuVisible = false;
+                    break;
+                }
+            }
+            if (menuButton.isHit(x, y))
+                symbolMenuVisible = false;
         }
 
         return super.onTouchEvent(event);
