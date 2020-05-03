@@ -58,6 +58,8 @@ public class StargateView extends View {
     private Paint fillWhitePaint;
     private Paint strokeWhiteAliasedThinPaint;
     private Paint strokeRedAliasedPaint;
+    private Paint fillWhiteGlyphPaint;
+    private Paint fillWhiteRexliaPaint;
 
     public StargateView(Context context) {
         super(context);
@@ -94,6 +96,21 @@ public class StargateView extends View {
         strokeRedAliasedPaint = preparePaint(Paint.Style.STROKE, Color.argb(0xff, 0xff, 0x30, 0x30));
         strokeWhiteAliasedThinPaint.setAntiAlias(true);
         strokeRedAliasedPaint.setStrokeWidth(3);
+
+        // https://webfonts0.com/font-stargatesg-1addressglyphs-free/126f117375.htm
+        Typeface tf = Typeface.createFromAsset(getContext().getAssets(), "stargatesg1addressglyphs.ttf");
+        fillWhiteGlyphPaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0xff, 0xff, 0xff));
+        fillWhiteGlyphPaint.setStyle(Paint.Style.FILL);
+        fillWhiteGlyphPaint.setTypeface(tf);
+        fillWhiteGlyphPaint.setStrokeWidth(2);
+        fillWhiteGlyphPaint.setTextSize(80);
+
+        tf = Typeface.createFromAsset(getContext().getAssets(), "rexlia.ttf");
+        fillWhiteRexliaPaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0xff, 0xff, 0xff));
+        fillWhiteRexliaPaint.setStyle(Paint.Style.FILL);
+        fillWhiteRexliaPaint.setTypeface(tf);
+        fillWhiteRexliaPaint.setStrokeWidth(2);
+        fillWhiteRexliaPaint.setTextSize(50);
     }
 
     private Paint preparePaint(Paint.Style style, int color) {
@@ -191,13 +208,10 @@ public class StargateView extends View {
                 path.lineTo(cx + cellWidth3, cy + cellHeight4);
                 path.lineTo(cx + cellWidth3 * 2, cy + cellHeight4);
 
-                for (int ci = 0; ci < 3; ci++) {
-                    for (int cj = 0; cj < 3; cj++) {
-                        if ((randomBits[i * 2 + j] & 1 << (ci * 3 + cj)) > 0) {
+                for (int ci = 0; ci < 3; ci++)
+                    for (int cj = 0; cj < 3; cj++)
+                        if ((randomBits[i * 2 + j] & 1 << (ci * 3 + cj)) > 0)
                             canvas.drawCircle((float) (strokeWidth / 2 + cx + cellWidth3 - radius + ci * spacingRadius * 2), (float) (strokeWidth / 2 + cy + cellHeight4 * 2 - radius + cj * spacingRadius * 2), radius, fillWhitePaint);
-                        }
-                    }
-                }
             }
         }
 
@@ -268,10 +282,11 @@ public class StargateView extends View {
                 int index = coef < 0 ? n : (offset.length - 1) - n;
                 float nx = cx + (float) Math.cos(start + coef * offset[index]) * radius[index];
                 float ny = cy + (float) Math.sin(start + coef * offset[index]) * radius[index];
-                if (s == 0 && n == 0)
+                if (s == 0 && n == 0) {
                     path.moveTo(nx, ny);
-                else
+                } else {
                     path.lineTo(nx, ny);
+                }
                 // dokončovací uzavření smyčky
                 if (s == 2)
                     break;
@@ -389,6 +404,30 @@ public class StargateView extends View {
 
     private void drawSymbolMenu(Canvas canvas) {
         canvas.drawRect(bevel, bevel, screenW - bevel, screenH - bevel, strokeBluePaint);
+
+        String chars = "abcdefghijklmnABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        int cols = 7;
+        int rows = 6;
+
+        float w = (screenW - spacing - 2f * bevel) / cols - spacing;
+        float h = (screenH - spacing - 2f * bevel) / rows - spacing;
+
+        for (char i = 0; i < rows; i++) {
+            for (char j = 0; j < cols; j++) {
+                int index = i * cols + j;
+                float gx = bevel + spacing + j * (spacing + w);
+                float gy = bevel + spacing + i * (spacing + h);
+                if (index < chars.length()) {
+                    canvas.drawText("" + chars.charAt(index), gx + 10, gy + 80, fillWhiteGlyphPaint);
+                    canvas.drawRect(gx, gy, gx + w, gy + h, strokeBluePaint);
+                }
+                if (index == chars.length()) {
+                    canvas.drawText("Menu", gx + 40, gy + 70, fillWhiteRexliaPaint);
+                    canvas.drawRect(gx, gy, gx + w * 2, gy + h, strokeBluePaint);
+                }
+            }
+        }
     }
 
     @Override
