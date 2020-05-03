@@ -6,9 +6,13 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Typeface;
+import android.view.MotionEvent;
 import android.view.View;
 
 public class StargateView extends View {
+
+    private boolean symbolMenuVisible = false;
+    private int choosenSlotId = -1;
 
     private int bevel = 20;
     private int strokeWidth = 3;
@@ -19,6 +23,8 @@ public class StargateView extends View {
     private int segment3Width = 400;
     private int segment4Width = 200;
     private int segment5Width = 180;
+
+    private Slot slots[] = new Slot[7];
 
     private int screenW, screenH;
 
@@ -51,6 +57,7 @@ public class StargateView extends View {
     private Paint fillLightBluePaint;
     private Paint fillWhitePaint;
     private Paint strokeWhiteAliasedThinPaint;
+    private Paint strokeRedAliasedPaint;
 
     public StargateView(Context context) {
         super(context);
@@ -83,6 +90,10 @@ public class StargateView extends View {
         strokeWhiteAliasedThinPaint = preparePaint(Paint.Style.STROKE, Color.argb(0xff, 0xff, 0xff, 0xff));
         strokeWhiteAliasedThinPaint.setAntiAlias(true);
         strokeWhiteAliasedThinPaint.setStrokeWidth(1);
+
+        strokeRedAliasedPaint = preparePaint(Paint.Style.STROKE, Color.argb(0xff, 0xff, 0x30, 0x30));
+        strokeWhiteAliasedThinPaint.setAntiAlias(true);
+        strokeRedAliasedPaint.setStrokeWidth(3);
     }
 
     private Paint preparePaint(Paint.Style style, int color) {
@@ -239,10 +250,32 @@ public class StargateView extends View {
         float y = bevel;
 
         float slotHeight = (screenH + spacing - 2 * bevel) * 1f / 7 - spacing;
+        float slotWidth = 60;
         for (int i = 0; i < 7; i++) {
-            float fromY = y + i * (slotHeight + spacing);
-            canvas.drawText("" + (i + 1), x - 10, fromY + 60, fillWhiteTextPaint);
-            canvas.drawRect(x + 30, fromY, x + segment5Width, fromY + slotHeight, strokeBluePaint);
+            float sx = x + 30;
+            float sy = y + i * (slotHeight + spacing);
+            canvas.drawText("" + (i + 1), x - 10, sy + slotWidth, fillWhiteTextPaint);
+            canvas.drawRect(sx, sy, x + segment5Width, sy + slotHeight, strokeBluePaint);
+            slots[i] = new Slot(i, sx, sy, slotWidth, slotHeight);
+        }
+    }
+
+    private void prepareNotchDraw(float start, float cx, float cy, Path path, float[] offset, float[] radius, int nodes) {
+        int coef = 1;
+        for (int s = 0; s < 3; s++) {
+            coef *= -1;
+            for (int n = 0; n < offset.length; n++) {
+                int index = coef < 0 ? n : (offset.length - 1) - n;
+                float nx = cx + (float) Math.cos(start + coef * offset[index]) * radius[index];
+                float ny = cy + (float) Math.sin(start + coef * offset[index]) * radius[index];
+                if (s == 0 && n == 0)
+                    path.moveTo(nx, ny);
+                else
+                    path.lineTo(nx, ny);
+                // dokončovací uzavření smyčky
+                if (s == 2)
+                    break;
+            }
         }
     }
 
@@ -286,7 +319,7 @@ public class StargateView extends View {
         path.lineTo(x + w - 190, y + h - 30);
         canvas.drawPath(path, strokeBluePaint);
 
-        float r = Math.min(w, h) / 2;
+        float r = Math.min(w, h) / 2 - 2;
         float cx = bevel * 2 + segment1Width + w / 2;
         float cy = bevel + h / 2;
         float r1 = r - 20;
@@ -318,26 +351,44 @@ public class StargateView extends View {
         float radius[] = new float[]{r1 - 24, r1 + 11, r1 + 11, r1 + 9, r1 + 5, r1, r1 - 2, r1 - 40};
         for (int i = 0; i < 9; i++) {
             float start = (float) (Math.PI * 1.5 + Math.PI * 2 / 9 * i);
-            int coef = 1;
-            for (int s = 0; s < 3; s++) {
-                coef *= -1;
-                for (int n = 0; n < offset.length; n++) {
-                    int index = coef < 0 ? n : (offset.length - 1) - n;
-                    float nx = cx + (float) Math.cos(start + coef * offset[index]) * radius[index];
-                    float ny = cy + (float) Math.sin(start + coef * offset[index]) * radius[index];
-                    if (s == 0 && n == 0)
-                        path.moveTo(nx, ny);
-                    else
-                        path.lineTo(nx, ny);
-                    // dokončovací uzavření smyčky
-                    if (s == 2)
-                        break;
-                }
-            }
+            prepareNotchDraw(start, cx, cy, path, offset, radius, offset.length);
         }
-
         canvas.drawPath(path, fillBlackPaint);
         canvas.drawPath(path, strokeWhiteAliasedThinPaint);
+
+        boolean selected = true;
+
+        path = new Path();
+        offset = new float[]{0.03f, 0.07f, 0.03f};
+        radius = new float[]{r1 - 24, r1 + 10, r1 + 11};
+        for (int i = 0; i < 9; i++) {
+            float start = (float) (Math.PI * 1.5 + Math.PI * 2 / 9 * i);
+            prepareNotchDraw(start, cx, cy, path, offset, radius, offset.length);
+        }
+        canvas.drawPath(path, fillBlackPaint);
+        if (selected) {
+            canvas.drawPath(path, strokeRedAliasedPaint);
+        } else {
+            canvas.drawPath(path, strokeWhiteAliasedThinPaint);
+        }
+
+        path = new Path();
+        offset = new float[]{0.005f, 0.04f, 0.005f};
+        radius = new float[]{r1 - 16, r1 + 9, r1 + 10};
+        for (int i = 0; i < 9; i++) {
+            float start = (float) (Math.PI * 1.5 + Math.PI * 2 / 9 * i);
+            prepareNotchDraw(start, cx, cy, path, offset, radius, offset.length);
+        }
+        canvas.drawPath(path, fillBlackPaint);
+        if (selected) {
+            canvas.drawPath(path, strokeRedAliasedPaint);
+        } else {
+            canvas.drawPath(path, strokeWhiteAliasedThinPaint);
+        }
+    }
+
+    private void drawSymbolMenu(Canvas canvas) {
+        canvas.drawRect(bevel, bevel, screenW - bevel, screenH - bevel, strokeBluePaint);
     }
 
     @Override
@@ -352,15 +403,36 @@ public class StargateView extends View {
         }
 
         drawBackground(canvas);
-        drawSegment1(canvas);
-        drawSegment2(canvas);
-        drawSegment3(canvas);
-        drawSegment4(canvas);
-        drawSegment5(canvas);
 
-        drawGate(canvas);
+        if (symbolMenuVisible) {
+            drawSymbolMenu(canvas);
+        } else {
+            drawSegment1(canvas);
+            drawSegment2(canvas);
+            drawSegment3(canvas);
+            drawSegment4(canvas);
+            drawSegment5(canvas);
+            drawGate(canvas);
+        }
 
         //canvas.restore();
         invalidate();
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        float x = event.getX();
+        float y = event.getY();
+
+        for (int i = 0; i < slots.length; i++) {
+            Slot slot = slots[i];
+            if (x > slot.getX() && y > slot.getY() && x < slot.getX() + slot.getW() && y < slot.getY() + slot.getH()) {
+                choosenSlotId = slot.getId();
+                symbolMenuVisible = true;
+                break;
+            }
+        }
+
+        return super.onTouchEvent(event);
     }
 }
