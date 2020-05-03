@@ -258,18 +258,19 @@ public class StargateView extends View {
         float r = Math.min(w, h) / 2;
         float cx = bevel * 2 + segment1Width + w / 2;
         float cy = bevel + h / 2;
-        float r1 = r - 80;
+        float r1 = r - 20;
         canvas.drawCircle(cx, cy, r1, strokeWhiteAliasedThinPaint);
-        float r2 = r - 50;
+        float r2 = r - 40;
         canvas.drawCircle(cx, cy, r2, strokeWhiteAliasedThinPaint);
-        float r3 = r - 40;
+        float r3 = r - 50;
         canvas.drawCircle(cx, cy, r3, strokeWhiteAliasedThinPaint);
-        float r4 = r - 20;
+        float r4 = r - 80;
         canvas.drawCircle(cx, cy, r4, strokeWhiteAliasedThinPaint);
 
         angleShift = (angleShift + 1) % 360;
 
         Path path = new Path();
+
         int segments = 39;
         float increment = 360f / segments;
         for (int i = 0; i < segments; i++) {
@@ -277,6 +278,29 @@ public class StargateView extends View {
             path.moveTo(cx + (float) Math.cos(rad) * r1, cy + (float) Math.sin(rad) * r1);
             path.lineTo(cx + (float) Math.cos(rad) * r2, cy + (float) Math.sin(rad) * r2);
         }
+
+        float offset[] = new float[]{0.03f, 0.07f, 0.2f, 0.25f, 0.26f, 0.1f, 0.05f};
+        float radius[] = new float[]{r1 - 25, r1 + 12, r1 + 10, r1 + 5, r1, r1 - 10, r1 - 40};
+        for (int i = 0; i < 9; i++) {
+            float start = (float) (Math.PI * 1.5 + Math.PI * 2 / 9 * i);
+            int coef = 1;
+            for (int s = 0; s < 3; s++) {
+                coef *= -1;
+                for (int n = 0; n < offset.length; n++) {
+                    int index = coef < 0 ? n : (offset.length - 1) - n;
+                    float nx = cx + (float) Math.cos(start + coef * offset[index]) * radius[index];
+                    float ny = cy + (float) Math.sin(start + coef * offset[index]) * radius[index];
+                    if (s == 0 && n == 0)
+                        path.moveTo(nx, ny);
+                    else
+                        path.lineTo(nx, ny);
+                    // dokončovací uzavření smyčky
+                    if (s == 2)
+                        break;
+                }
+            }
+        }
+
         canvas.drawPath(path, strokeWhiteAliasedThinPaint);
 
     }
