@@ -1,6 +1,7 @@
 package cz.gattserver.stargate;
 
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -45,7 +46,8 @@ public class CustomDrawableView extends View {
         float[] intervals = new float[]{length, length};
 
         ObjectAnimator animator = ObjectAnimator.ofFloat(CustomDrawableView.this, "phase", 1.0f, 0.0f);
-        animator.setDuration(3000);
+        animator.setRepeatCount(ValueAnimator.INFINITE);
+        animator.setRepeatMode(ValueAnimator.RESTART);
         animator.start();
     }
 
