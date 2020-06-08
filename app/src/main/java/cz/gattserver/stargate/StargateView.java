@@ -6,10 +6,22 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Typeface;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.media.ToneGenerator;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
 public class StargateView extends View {
+
+    private ToneGenerator toneGenerator;
 
     private boolean symbolMenuVisible = false;
     private int choosenSlotId = -1;
@@ -82,7 +94,7 @@ public class StargateView extends View {
         Typeface rexliaFont = Typeface.createFromAsset(getContext().getAssets(), "rexlia.ttf");
         fillBlueTextPaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0x00, 0xa0, 0xff));
         fillBlueTextPaint.setStyle(Paint.Style.FILL);
-        //fillBlueTextPaint.setTypeface(Typeface.MONOSPACE);
+//fillBlueTextPaint.setTypeface(Typeface.MONOSPACE);
         fillBlueTextPaint.setTypeface(rexliaFont);
         fillBlueTextPaint.setStrokeWidth(2);
         fillBlueTextPaint.setTextSize(textSize);
@@ -479,6 +491,21 @@ public class StargateView extends View {
         invalidate();
     }
 
+    private void beep1() {
+        // ok funguje
+        try {
+            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
+            r.play();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void beep2() {
+        new cz.gattserver.stargate.ToneGenerator().play();
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getX();
@@ -500,6 +527,7 @@ public class StargateView extends View {
                     choosenGlyph[choosenSlotId] = chars.charAt(i);
                     choosenSlotId = -1;
                     symbolMenuVisible = false;
+                    beep2();
                     break;
                 }
             }
