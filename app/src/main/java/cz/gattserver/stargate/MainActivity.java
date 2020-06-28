@@ -3,6 +3,7 @@ package cz.gattserver.stargate;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
+import android.content.pm.ActivityInfo;
 import android.graphics.drawable.Drawable;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -36,6 +37,8 @@ public class MainActivity extends AppCompatActivity {
         //HeartbeatView view = new HeartbeatView(this);
         StargateView view = new StargateView(this);
         mainLayout.addView(view);
+
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
 
         View decorView = getWindow().getDecorView();
         decorView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {

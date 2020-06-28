@@ -296,7 +296,7 @@ public class StargateView extends View {
             float sy = y + i * (slotHeight + spacing);
             canvas.drawText("" + (i + 1), x - 10, sy + slotWidth, fillWhiteTextPaint);
             canvas.drawRect(sx, sy, x + segment5Width, sy + slotHeight, strokeBluePaint);
-            slotButtons[i].setX(sx).setY(sy).setW(slotWidth).setH(slotHeight);
+            slotButtons[i].setX(sx).setY(sy).setW(segment5Width).setH(slotHeight);
 
             if (choosenGlyph[i] != 0)
                 canvas.drawText("" + choosenGlyph[i], sx + 20, sy + 70, fillWhiteGlyphPaint);
