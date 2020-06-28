@@ -7,6 +7,15 @@ public class UIButton {
     private float y;
     private float w;
     private float h;
+    private boolean visible = true;
+
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void setVisible(boolean visible) {
+        this.visible = visible;
+    }
 
     public int getId() {
         return id;
@@ -54,6 +63,6 @@ public class UIButton {
     }
 
     public boolean isHit(float x, float y) {
-        return x > getX() && y > getY() && x < getX() + getW() && y < getY() + getH();
+        return visible && x > getX() && y > getY() && x < getX() + getW() && y < getY() + getH();
     }
 }

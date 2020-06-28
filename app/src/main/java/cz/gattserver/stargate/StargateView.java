@@ -1,6 +1,7 @@
 package cz.gattserver.stargate;
 
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -19,11 +20,21 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 public class StargateView extends View {
 
-    private ToneGenerator toneGenerator;
+    private ContinuousBuzzer buzzer;
 
     private boolean symbolMenuVisible = false;
+    private boolean programmingMenuVisible = false;
+    private int choosenPresetIdRow = -1;
+    private int choosenPresetIdCol = -1;
     private int choosenSlotId = -1;
     private String chars = "abcdefghijklmnABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -40,7 +51,9 @@ public class StargateView extends View {
     private char choosenGlyph[] = new char[7];
 
     private UIButton slotButtons[] = new UIButton[7];
+    private UIButton presetButtons[][] = new UIButton[10][7];
     private UIButton glyphButtons[] = new UIButton[40];
+    private UIButton programmingBtn = new UIButton();
     private UIButton menuButton = new UIButton();
 
     private int screenW, screenH;
@@ -77,10 +90,19 @@ public class StargateView extends View {
     private Paint strokeWhiteAliasedThinPaint;
     private Paint strokeRedAliasedPaint;
     private Paint fillWhiteGlyphPaint;
+    private Paint fillWhiteSmallGlyphPaint;
     private Paint fillWhiteRexliaPaint;
 
-    public StargateView(Context context) {
+    private List<String> combinations;
+
+    private long timeStart = System.currentTimeMillis();
+
+    private int btnIdCounter;
+
+    public StargateView(ContextWrapper context) {
         super(context);
+
+        combinations = new ArrayList<String>(DataUtils.readCombinations(context));
 
         for (int l = 0; l < randomStringsLines; l++)
             randomStrings[l] = randomString();
@@ -126,6 +148,12 @@ public class StargateView extends View {
         fillWhiteGlyphPaint.setStrokeWidth(2);
         fillWhiteGlyphPaint.setTextSize(80);
 
+        fillWhiteSmallGlyphPaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0xff, 0xff, 0xff));
+        fillWhiteSmallGlyphPaint.setStyle(Paint.Style.FILL);
+        fillWhiteSmallGlyphPaint.setTypeface(glyphFont);
+        fillWhiteSmallGlyphPaint.setStrokeWidth(2);
+        fillWhiteSmallGlyphPaint.setTextSize(50);
+
         fillWhiteRexliaPaint = preparePaint(Paint.Style.FILL, Color.argb(0xff, 0xff, 0xff, 0xff));
         fillWhiteRexliaPaint.setStyle(Paint.Style.FILL);
         fillWhiteRexliaPaint.setTypeface(rexliaFont);
@@ -133,9 +161,14 @@ public class StargateView extends View {
         fillWhiteRexliaPaint.setTextSize(50);
 
         for (int i = 0; i < 7; i++)
-            slotButtons[i] = new UIButton().setId(i);
+            slotButtons[i] = new UIButton().setId(btnIdCounter++);
+        for (int i = 0; i < 10; i++) {
+            presetButtons[i] = new UIButton[7];
+            for (int j = 0; j < 7; j++)
+                presetButtons[i][j] = new UIButton().setId(btnIdCounter++);
+        }
         for (int i = 0; i < 40; i++)
-            glyphButtons[i] = new UIButton().setId(i);
+            glyphButtons[i] = new UIButton().setId(btnIdCounter++);
         menuButton = new UIButton();
     }
 
@@ -283,6 +316,17 @@ public class StargateView extends View {
                     canvas.drawRect(fromX + 2, fromY - barHeight + 2, fromX + barWidth - 1, fromY - 1, fillWhitePaint);
             }
         }
+    }
+
+    private void drawProgrammingBtn(Canvas canvas) {
+        float x = bevel + segment3Width + bevel + segment4Width + bevel;
+        float y = bevel + segment1Height + bevel + segment1Width + bevel;
+        float toX = screenW - bevel - segment5Width - bevel;
+        float toY = screenH - bevel;
+
+        canvas.drawRect(x, y, toX, toY, strokeBluePaint);
+        canvas.drawText("Prog", x + 10, y + 50, fillWhiteTextPaint);
+        programmingBtn.setX(x).setY(y).setW(toX - x).setH(toY - y);
     }
 
     private void drawSegment5(Canvas canvas) {
@@ -435,6 +479,13 @@ public class StargateView extends View {
         canvas.drawPath(selectedNotchPath, strokeRedAliasedPaint);
     }
 
+    private boolean isGlyphChoosen(int index) {
+        for (char c : choosenGlyph)
+            if (c == chars.charAt(index))
+                return true;
+        return false;
+    }
+
     private void drawSymbolMenu(Canvas canvas) {
         canvas.drawRect(bevel, bevel, screenW - bevel, screenH - bevel, strokeBluePaint);
 
@@ -450,8 +501,11 @@ public class StargateView extends View {
                 float gx = bevel + spacing + j * (spacing + w);
                 float gy = bevel + spacing + i * (spacing + h);
                 if (index < chars.length()) {
-                    canvas.drawText("" + chars.charAt(index), gx + 10, gy + 80, fillWhiteGlyphPaint);
-                    canvas.drawRect(gx, gy, gx + w, gy + h, strokeBluePaint);
+                    glyphButtons[index].setVisible(!isGlyphChoosen(index));
+                    if (glyphButtons[index].isVisible()) {
+                        canvas.drawText("" + chars.charAt(index), gx + 10, gy + 80, fillWhiteGlyphPaint);
+                        canvas.drawRect(gx, gy, gx + w, gy + h, strokeBluePaint);
+                    }
                     glyphButtons[index].setX(gx).setY(gy).setW(w).setH(h).setId(index);
                 }
                 if (index == chars.length()) {
@@ -459,6 +513,26 @@ public class StargateView extends View {
                     canvas.drawRect(gx, gy, gx + w * 2, gy + h, strokeBluePaint);
                     menuButton.setX(gx).setY(gy).setW(w).setH(h);
                 }
+            }
+        }
+    }
+
+    private void drawProgrammingMenu(Canvas canvas) {
+        canvas.drawRect(bevel, bevel, screenW - bevel, screenH - bevel, strokeBluePaint);
+
+        int cols = slotButtons.length;
+        int rows = DataUtils.COMBINATIONS_COUNT;
+
+        float w = (screenW - spacing - 2f * bevel) / cols - spacing;
+        float h = (screenH - spacing - 2f * bevel) / rows - spacing;
+
+        for (char i = 0; i < combinations.size(); i++) {
+            for (char j = 0; j < combinations.get(i).length(); j++) {
+                float gx = bevel + spacing + j * (spacing + w);
+                float gy = bevel + spacing + i * (spacing + h);
+                canvas.drawText("" + combinations.get(i).charAt(j), gx + 10, gy + 50, fillWhiteSmallGlyphPaint);
+                canvas.drawRect(gx, gy, gx + w, gy + h, strokeBluePaint);
+                presetButtons[i][j].setX(gx).setY(gy).setW(w).setH(h);
             }
         }
     }
@@ -474,36 +548,27 @@ public class StargateView extends View {
             randomRefreshTime = now;
         }
 
+        // programování je možné zapnout pouze prvních 20s
+        if (programmingBtn.isVisible() && now - timeStart > 20 * 1000)
+            programmingBtn.setVisible(false);
+
         drawBackground(canvas);
 
         if (symbolMenuVisible) {
             drawSymbolMenu(canvas);
+        } else if (programmingMenuVisible) {
+            drawProgrammingMenu(canvas);
         } else {
             drawSegment1(canvas);
             drawSegment2(canvas);
             drawSegment3(canvas);
             drawSegment4(canvas);
             drawSegment5(canvas);
+            if (programmingBtn.isVisible())
+                drawProgrammingBtn(canvas);
             drawGate(canvas);
         }
-
-        //canvas.restore();
         invalidate();
-    }
-
-    private void beep1() {
-        // ok funguje
-        try {
-            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
-            r.play();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void beep2() {
-        new cz.gattserver.stargate.ToneGenerator().play();
     }
 
     @Override
@@ -511,7 +576,46 @@ public class StargateView extends View {
         float x = event.getX();
         float y = event.getY();
 
-        if (!symbolMenuVisible) {
+        if (symbolMenuVisible) {
+            for (int i = 0; i < glyphButtons.length; i++) {
+                UIButton glyphButton = glyphButtons[i];
+                if (glyphButton.isHit(x, y)) {
+                    if (choosenPresetIdRow == -1 ||choosenPresetIdCol == -1) {
+                        choosenGlyph[choosenSlotId] = chars.charAt(i);
+                        choosenSlotId = -1;
+
+                        if (buzzer == null)
+                            buzzer = new ContinuousBuzzer();
+                        if (!buzzer.isPlaying)
+                            buzzer.play();
+                        break;
+                    } else {
+                        char[] arr = combinations.get(choosenPresetIdRow).toCharArray();
+                        arr[choosenPresetIdCol] = chars.charAt(i);
+                        combinations.set(choosenPresetIdRow, new String(arr));
+                        DataUtils.saveCombinations((ContextWrapper) getContext(), combinations);
+                        choosenPresetIdCol = -1;
+                        choosenPresetIdRow = -1;
+                        programmingMenuVisible = true;
+                    }
+                    symbolMenuVisible = false;
+                }
+            }
+            if (menuButton.isHit(x, y))
+                symbolMenuVisible = false;
+        } else if (programmingMenuVisible) {
+            for (int i = 0; i < presetButtons.length; i++) {
+                for (int j = 0; j < presetButtons[i].length; j++) {
+                    UIButton presetButton = presetButtons[i][j];
+                    if (presetButton.isHit(x, y)) {
+                        choosenPresetIdRow = i;
+                        choosenPresetIdCol = j;
+                        symbolMenuVisible = true;
+                        programmingMenuVisible = false;
+                    }
+                }
+            }
+        } else {
             for (int i = 0; i < slotButtons.length; i++) {
                 UIButton slotButton = slotButtons[i];
                 if (slotButton.isHit(x, y)) {
@@ -520,19 +624,8 @@ public class StargateView extends View {
                     break;
                 }
             }
-        } else {
-            for (int i = 0; i < glyphButtons.length; i++) {
-                UIButton glyphButton = glyphButtons[i];
-                if (glyphButton.isHit(x, y)) {
-                    choosenGlyph[choosenSlotId] = chars.charAt(i);
-                    choosenSlotId = -1;
-                    symbolMenuVisible = false;
-                    beep2();
-                    break;
-                }
-            }
-            if (menuButton.isHit(x, y))
-                symbolMenuVisible = false;
+            if (programmingBtn.isHit(x, y))
+                programmingMenuVisible = true;
         }
 
         return super.onTouchEvent(event);
