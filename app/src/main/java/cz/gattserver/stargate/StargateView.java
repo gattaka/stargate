@@ -38,6 +38,8 @@ public class StargateView extends View {
     private int choosenSlotId = -1;
     private String chars = "abcdefghijklmnABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+    private boolean spinning = true;
+
     private int bevel = 20;
     private int strokeWidth = 3;
     private int spacing = 15;
@@ -426,7 +428,7 @@ public class StargateView extends View {
         int segments = 39;
         float increment = 360f / segments;
         for (int i = 0; i < segments; i++) {
-            float rad = (float) ((increment * i + angleShift) * Math.PI / 180);
+            float rad = (float) ((increment * i + (spinning ? angleShift : 0)) * Math.PI / 180);
             path.moveTo(cx + (float) Math.cos(rad) * r3, cy + (float) Math.sin(rad) * r3);
             path.lineTo(cx + (float) Math.cos(rad) * r4, cy + (float) Math.sin(rad) * r4);
         }
@@ -444,6 +446,8 @@ public class StargateView extends View {
         canvas.drawPath(path, fillBlackPaint);
         canvas.drawPath(path, strokeWhiteAliasedThinPaint);
 
+        Paint selectPaint = !spinning && angleShift % 30 > 15 ? fillWhitePaint : strokeRedAliasedPaint;
+
         Path freeNotchPath = new Path();
         Path selectedNotchPath = new Path();
         offset = new float[]{0.03f, 0.07f, 0.03f};
@@ -459,7 +463,7 @@ public class StargateView extends View {
         canvas.drawPath(freeNotchPath, fillBlackPaint);
         canvas.drawPath(selectedNotchPath, fillBlackPaint);
         canvas.drawPath(freeNotchPath, strokeWhiteAliasedThinPaint);
-        canvas.drawPath(selectedNotchPath, strokeRedAliasedPaint);
+        canvas.drawPath(selectedNotchPath,  selectPaint);
 
         freeNotchPath = new Path();
         selectedNotchPath = new Path();
@@ -476,7 +480,7 @@ public class StargateView extends View {
         canvas.drawPath(freeNotchPath, fillBlackPaint);
         canvas.drawPath(selectedNotchPath, fillBlackPaint);
         canvas.drawPath(freeNotchPath, strokeWhiteAliasedThinPaint);
-        canvas.drawPath(selectedNotchPath, strokeRedAliasedPaint);
+        canvas.drawPath(selectedNotchPath, selectPaint);
     }
 
     private boolean isGlyphChoosen(int index) {
@@ -571,6 +575,18 @@ public class StargateView extends View {
         invalidate();
     }
 
+    private void onMatch() {
+        spinning = false;
+        if (buzzer == null)
+            buzzer = new ContinuousBuzzer();
+        if (!buzzer.isPlaying)
+            buzzer.play();
+    }
+
+    private void onNotMatch() {
+        spinning = true;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getX();
@@ -580,15 +596,25 @@ public class StargateView extends View {
             for (int i = 0; i < glyphButtons.length; i++) {
                 UIButton glyphButton = glyphButtons[i];
                 if (glyphButton.isHit(x, y)) {
-                    if (choosenPresetIdRow == -1 ||choosenPresetIdCol == -1) {
+                    if (choosenPresetIdRow == -1 || choosenPresetIdCol == -1) {
                         choosenGlyph[choosenSlotId] = chars.charAt(i);
                         choosenSlotId = -1;
 
-                        if (buzzer == null)
-                            buzzer = new ContinuousBuzzer();
-                        if (!buzzer.isPlaying)
-                            buzzer.play();
-                        break;
+                        boolean match = false;
+                        for (String s : combinations) {
+                            match = true;
+                            for (int g = 0; g < choosenGlyph.length; g++) {
+                                match = choosenGlyph[g] == s.charAt(g);
+                                if (!match)
+                                    break;
+                            }
+                            if (match) {
+                                onMatch();
+                                break;
+                            }
+                        }
+                        if (!match)
+                            onNotMatch();
                     } else {
                         char[] arr = combinations.get(choosenPresetIdRow).toCharArray();
                         arr[choosenPresetIdCol] = chars.charAt(i);
@@ -599,6 +625,7 @@ public class StargateView extends View {
                         programmingMenuVisible = true;
                     }
                     symbolMenuVisible = false;
+                    break;
                 }
             }
             if (menuButton.isHit(x, y))
